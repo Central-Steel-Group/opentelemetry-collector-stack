@@ -7,9 +7,9 @@ exporters:
   prometheus:
     endpoint: "0.0.0.0:9464"
   otlp:
-    endpoint: "http://${Tempo.RAILWAY_PRIVATE_DOMAIN}:3200/api/traces"
+    endpoint: "http://${TEMPO_PRIVATE_DOMAIN}:3200/api/traces"
   loki:
-    endpoint: "http://${Loki.RAILWAY_PRIVATE_DOMAIN}:3100/loki/api/v1/push"
+    endpoint: "http://${LOKI_PRIVATE_DOMAIN}:3100/loki/api/v1/push"
     labels:
       service: "${RAILWAY_SERVICE_NAME}"
 processors:
