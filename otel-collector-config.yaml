@@ -9,7 +9,7 @@ exporters:
   prometheus:
     endpoint: "[::]:9464"
   otlphttp:
-    endpoint: "http://${TEMPO_PRIVATE_DOMAIN}:3200"
+    endpoint: "http://${TEMPO_PRIVATE_DOMAIN}:4318"
   # loki:
     # endpoint: "http://${LOKI_PRIVATE_DOMAIN}:3100/loki/api/v1/push"
     # labels:
