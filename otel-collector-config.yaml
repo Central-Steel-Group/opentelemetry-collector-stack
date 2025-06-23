@@ -3,45 +3,26 @@ receivers:
     protocols:
       grpc:
       http:
-
 exporters:
-  debug:
-    verbosity: detailed
-
   prometheus:
-    endpoint: "0.0.0.0:8889"
-    const_labels:
-      label1: value1
-
-  logging:
-
-  zipkin:
-    endpoint: "http://zipkin.railway.internal:9411/api/v2/spans"
-    format: proto
-
-  otlp/jaeger:
-    endpoint: jaeger.railway.internal:4317
-    tls:
-      insecure: true
-
+    endpoint: "0.0.0.0:9464"
+  otlp:
+    endpoint: "http://${Tempo.RAILWAY_PRIVATE_DOMAIN}:3200/api/traces"
+  loki:
+    endpoint: "http://${Loki.RAILWAY_PRIVATE_DOMAIN}:3100/loki/api/v1/push"
+    labels:
+      service: "${RAILWAY_SERVICE_NAME}"
 processors:
   batch:
-
-extensions:
-  health_check:
-  pprof:
-    endpoint: :1888
-  zpages:
-    endpoint: :55679
-
 service:
-  extensions: [pprof, zpages, health_check]
   pipelines:
     traces:
       receivers: [otlp]
-      processors: [batch]
-      exporters: [logging, zipkin, otlp/jaeger, debug]
+      exporters: [otlp]
     metrics:
       receivers: [otlp]
       processors: [batch]
-      exporters: [logging, prometheus, debug]
+      exporters: [prometheus]
+    logs:
+      receivers: [otlp]
+      exporters: [loki]
