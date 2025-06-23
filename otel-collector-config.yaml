@@ -2,10 +2,12 @@ receivers:
   otlp:
     protocols:
       grpc:
+        endpoint: "[::]:4317"
       http:
+        endpoint: "[::]:4318"
 exporters:
   prometheus:
-    endpoint: "0.0.0.0:9464"
+    endpoint: "[::]:9464"
   otlphttp:
     endpoint: "http://${TEMPO_PRIVATE_DOMAIN}:3200"
   # loki:
