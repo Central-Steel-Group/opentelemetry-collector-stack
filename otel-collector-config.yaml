@@ -1,13 +1,14 @@
 receivers:
   otlp:
     protocols:
-      # grpc:
+      grpc:
       http:
 exporters:
   prometheus:
     endpoint: "0.0.0.0:9464"
   otlp:
-    endpoint: "http://${TEMPO_PRIVATE_DOMAIN}:3200"
+    endpoint: "${TEMPO_PRIVATE_DOMAIN}:3200"
+    insecure: true
   # loki:
     # endpoint: "http://${LOKI_PRIVATE_DOMAIN}:3100/loki/api/v1/push"
     # labels:
