@@ -8,10 +8,10 @@ exporters:
     endpoint: "0.0.0.0:9464"
   otlp:
     endpoint: "http://${TEMPO_PRIVATE_DOMAIN}:3200/api/traces"
-  loki:
-    endpoint: "http://${LOKI_PRIVATE_DOMAIN}:3100/loki/api/v1/push"
-    labels:
-      service: "${RAILWAY_SERVICE_NAME}"
+  # loki:
+    # endpoint: "http://${LOKI_PRIVATE_DOMAIN}:3100/loki/api/v1/push"
+    # labels:
+    #   service: "${RAILWAY_SERVICE_NAME}"
 processors:
   batch:
 service:
@@ -23,6 +23,6 @@ service:
       receivers: [otlp]
       processors: [batch]
       exporters: [prometheus]
-    logs:
-      receivers: [otlp]
-      exporters: [loki]
+    # logs:
+    #   receivers: [otlp]
+    #   exporters: [loki]
