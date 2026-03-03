@@ -8,6 +8,8 @@ receivers:
 exporters:
   prometheus:
     endpoint: "[::]:9464"
+    # resource_to_telemetry_conversion:
+    #   enabled: true
   otlphttp:
     endpoint: "http://${TEMPO_PRIVATE_DOMAIN}:4318"
   # loki:
@@ -16,6 +18,12 @@ exporters:
     #   service: "${RAILWAY_SERVICE_NAME}"
 processors:
   batch:
+  transform:
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(attributes["worker"], resource.attributes["worker"])
+          - set(attributes["service_instance_id"], resource.attributes["service.instance.id"])
 service:
   pipelines:
     traces:
@@ -23,7 +31,7 @@ service:
       exporters: [otlphttp]
     metrics:
       receivers: [otlp]
-      processors: [batch]
+      processors: [transform, batch]
       exporters: [prometheus]
     # logs:
     #   receivers: [otlp]
