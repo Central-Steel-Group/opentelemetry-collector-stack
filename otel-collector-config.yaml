@@ -31,7 +31,7 @@ service:
       exporters: [otlphttp]
     metrics:
       receivers: [otlp]
-      processors: [batch, transform]
+      processors: [transform, batch]
       exporters: [prometheus]
     # logs:
     #   receivers: [otlp]
