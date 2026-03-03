@@ -18,6 +18,12 @@ exporters:
     #   service: "${RAILWAY_SERVICE_NAME}"
 processors:
   batch:
+  transform:
+    metric_statements:
+      - context: datapoint
+        statements:
+          - set(attributes["worker"], resource.attributes["worker"])
+          - set(attributes["service_instance_id"], resource.attributes["service.instance.id"])
 service:
   pipelines:
     traces:
@@ -25,7 +31,7 @@ service:
       exporters: [otlphttp]
     metrics:
       receivers: [otlp]
-      processors: [batch]
+      processors: [batch, transform]
       exporters: [prometheus]
     # logs:
     #   receivers: [otlp]
