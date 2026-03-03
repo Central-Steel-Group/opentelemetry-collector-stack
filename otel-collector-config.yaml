@@ -8,6 +8,8 @@ receivers:
 exporters:
   prometheus:
     endpoint: "[::]:9464"
+    resource_to_telemetry_conversion:
+      enabled: true
   otlphttp:
     endpoint: "http://${TEMPO_PRIVATE_DOMAIN}:4318"
   # loki:
