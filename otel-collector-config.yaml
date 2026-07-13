@@ -39,7 +39,7 @@ service:
       receivers: [otlp]
       processors: [batch]
       # 2. Add span_metrics as an exporter to catch incoming traces
-      exporters: [otlphttp, span_metrics]
+      exporters: [otlp_http, span_metrics]
     metrics:
       # 3. Add span_metrics as a receiver to funnel generated metrics into this pipeline
       receivers: [otlp, span_metrics]
