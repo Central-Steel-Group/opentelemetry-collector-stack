@@ -9,7 +9,7 @@ receivers:
 exporters:
   prometheus:
     endpoint: "[::]:9464"
-  otlphttp:
+  otlp_http:
     endpoint: "http://${TEMPO_PRIVATE_DOMAIN}:4318"
 
 # 1. Define the connector alongside receivers/exporters
