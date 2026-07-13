@@ -29,9 +29,14 @@ processors:
       - context: datapoint
         statements:
           # Skip setting individual attributes if the metric originated from the span_metrics connector
-          - set(attributes["worker"], resource.attributes["worker"]) where IsMatch(metric.name, "^traces_span_metrics") == false
-          - set(attributes["service_instance_id"], resource.attributes["service.instance.id"]) where IsMatch(metric.name, "^traces_span_metrics") == false
-          - set(attributes["service_name"], resource.attributes["service.name"]) where IsMatch(metric.name, "^traces_span_metrics") == false and resource.attributes["service.name"] != nil
+          - set(attributes["worker"], resource.attributes["worker"]) where IsMatch(metric.name, "^traces\\.span\\.metrics") == false
+          - set(attributes["service_instance_id"], resource.attributes["service.instance.id"]) where IsMatch(metric.name, "^traces\\.span\\.metrics") == false
+          - set(attributes["service_name"], resource.attributes["service.name"]) where IsMatch(metric.name, "^traces\\.span\\.metrics") == false and resource.attributes["service.name"] != nil
+
+          # Clean up the dotted service.name attribute created by the connector for Prometheus compliance
+          - set(attributes["service_name"], attributes["service.name"]) where IsMatch(metric.name, "^traces\\.span\\.metrics") == true and attributes["service.name"] != nil
+          - delete_key(attributes, "service.name") where IsMatch(metric.name, "^traces\\.span\\.metrics") == true
+          - delete_key(attributes, "service.instance.id") where IsMatch(metric.name, "^traces\\.span\\.metrics") == true
 
 service:
   pipelines:
