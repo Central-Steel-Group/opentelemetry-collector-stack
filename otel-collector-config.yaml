@@ -29,9 +29,9 @@ processors:
       - context: datapoint
         statements:
           # Skip setting individual attributes if the metric originated from the span_metrics connector
-          - set(attributes["worker"], resource.attributes["worker"]) where IsMatch(name, "^traces_span_metrics") == false
-          - set(attributes["service_instance_id"], resource.attributes["service.instance.id"]) where IsMatch(name, "^traces_span_metrics") == false
-          - set(attributes["service_name"], resource.attributes["service.name"]) where IsMatch(name, "^traces_span_metrics") == false and resource.attributes["service.name"] != nil
+          - set(attributes["worker"], resource.attributes["worker"]) where IsMatch(metric.name, "^traces_span_metrics") == false
+          - set(attributes["service_instance_id"], resource.attributes["service.instance.id"]) where IsMatch(metric.name, "^traces_span_metrics") == false
+          - set(attributes["service_name"], resource.attributes["service.name"]) where IsMatch(metric.name, "^traces_span_metrics") == false and resource.attributes["service.name"] != nil
 
 service:
   pipelines:
