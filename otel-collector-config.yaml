@@ -5,17 +5,23 @@ receivers:
         endpoint: "[::]:4317"
       http:
         endpoint: "[::]:4318"
+
 exporters:
   prometheus:
     endpoint: "[::]:9464"
-    # resource_to_telemetry_conversion:
-    #   enabled: true
   otlphttp:
     endpoint: "http://${TEMPO_PRIVATE_DOMAIN}:4318"
-  # loki:
-    # endpoint: "http://${LOKI_PRIVATE_DOMAIN}:3100/loki/api/v1/push"
-    # labels:
-    #   service: "${RAILWAY_SERVICE_NAME}"
+
+# 1. Define the connector alongside receivers/exporters
+connectors:
+  span_metrics:
+    namespace: traces.span.metrics
+    # Explicitly pull resource attributes down onto the metrics data points
+    add_resource_attributes: true 
+    dimensions:
+      - name: http.status_code
+      - name: http.method
+
 processors:
   batch:
   transform:
@@ -24,15 +30,18 @@ processors:
         statements:
           - set(attributes["worker"], resource.attributes["worker"])
           - set(attributes["service_instance_id"], resource.attributes["service.instance.id"])
+          # Safely copy service.name over to a metric label for easier Prometheus querying
+          - set(attributes["service_name"], resource.attributes["service.name"]) where resource.attributes["service.name"] != nil
+
 service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [otlphttp]
+      processors: [batch]
+      # 2. Add span_metrics as an exporter to catch incoming traces
+      exporters: [otlphttp, span_metrics]
     metrics:
-      receivers: [otlp]
+      # 3. Add span_metrics as a receiver to funnel generated metrics into this pipeline
+      receivers: [otlp, span_metrics]
       processors: [transform, batch]
       exporters: [prometheus]
-    # logs:
-    #   receivers: [otlp]
-    #   exporters: [loki]
