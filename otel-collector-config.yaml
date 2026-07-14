@@ -5,34 +5,48 @@ receivers:
         endpoint: "[::]:4317"
       http:
         endpoint: "[::]:4318"
+
 exporters:
   prometheus:
     endpoint: "[::]:9464"
-    # resource_to_telemetry_conversion:
-    #   enabled: true
-  otlphttp:
+  otlp_http:
     endpoint: "http://${TEMPO_PRIVATE_DOMAIN}:4318"
-  # loki:
-    # endpoint: "http://${LOKI_PRIVATE_DOMAIN}:3100/loki/api/v1/push"
-    # labels:
-    #   service: "${RAILWAY_SERVICE_NAME}"
+
+# 1. Define the connector alongside receivers/exporters
+connectors:
+  span_metrics:
+    namespace: traces.span.metrics
+    # Explicitly pull resource attributes down onto the metrics data points
+    add_resource_attributes: true 
+    dimensions:
+      - name: http.status_code
+      - name: http.method
+
 processors:
   batch:
   transform:
     metric_statements:
       - context: datapoint
         statements:
-          - set(attributes["worker"], resource.attributes["worker"])
-          - set(attributes["service_instance_id"], resource.attributes["service.instance.id"])
+          # Skip setting individual attributes if the metric originated from the span_metrics connector
+          - set(attributes["worker"], resource.attributes["worker"]) where IsMatch(metric.name, "^traces\\.span\\.metrics") == false
+          - set(attributes["service_instance_id"], resource.attributes["service.instance.id"]) where IsMatch(metric.name, "^traces\\.span\\.metrics") == false
+          - set(attributes["service_name"], resource.attributes["service.name"]) where IsMatch(metric.name, "^traces\\.span\\.metrics") == false and resource.attributes["service.name"] != nil
+
+          # Clean up the dotted service.name attribute created by the connector for Prometheus compliance
+          - set(attributes["service_name"], attributes["service.name"]) where IsMatch(metric.name, "^traces\\.span\\.metrics") == true and attributes["service.name"] != nil
+          - delete_key(attributes, "service.name") where IsMatch(metric.name, "^traces\\.span\\.metrics") == true
+          - delete_key(attributes, "service.instance.id") where IsMatch(metric.name, "^traces\\.span\\.metrics") == true
+
 service:
   pipelines:
     traces:
       receivers: [otlp]
-      exporters: [otlphttp]
+      processors: [batch]
+      # 2. Add span_metrics as an exporter to catch incoming traces
+      exporters: [otlp_http, span_metrics]
     metrics:
-      receivers: [otlp]
+      # 3. Add span_metrics as a receiver to funnel generated metrics into this pipeline
+      receivers: [otlp, span_metrics]
       processors: [transform, batch]
       exporters: [prometheus]
-    # logs:
-    #   receivers: [otlp]
-    #   exporters: [loki]
