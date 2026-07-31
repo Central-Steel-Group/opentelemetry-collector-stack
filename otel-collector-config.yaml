@@ -12,12 +12,24 @@ exporters:
   otlp_http:
     endpoint: "http://${TEMPO_PRIVATE_DOMAIN}:4318"
 
-# 1. Define the connector alongside receivers/exporters
 connectors:
   span_metrics:
     namespace: traces.span.metrics
-    # Explicitly pull resource attributes down onto the metrics data points
-    add_resource_attributes: true 
+
+    # Group generated metrics by stable service identity rather than
+    # by every resource attribute, such as Gunicorn worker instance IDs.
+    #
+    # This controls the resource-metrics grouping key. It does not copy
+    # this attribute onto the generated metric as an additional dimension.
+    resource_metrics_key_attributes:
+      - service.name
+
+    # Additional span attributes to include beyond the connector's
+    # standard dimensions:
+    #   service.name
+    #   span.name
+    #   span.kind
+    #   status.code
     dimensions:
       - name: http.status_code
       - name: http.method
@@ -28,25 +40,38 @@ processors:
     metric_statements:
       - context: datapoint
         statements:
-          # Skip setting individual attributes if the metric originated from the span_metrics connector
-          - set(attributes["worker"], resource.attributes["worker"]) where IsMatch(metric.name, "^traces\\.span\\.metrics") == false
-          - set(attributes["service_instance_id"], resource.attributes["service.instance.id"]) where IsMatch(metric.name, "^traces\\.span\\.metrics") == false
+          # For ordinary application metrics received through OTLP,
+          # copy selected resource attributes onto each metric datapoint.
+          - set(attributes["worker"], resource.attributes["worker"]) where IsMatch(metric.name, "^traces\\.span\\.metrics") == false and resource.attributes["worker"] != nil
+
+          - set(attributes["service_instance_id"], resource.attributes["service.instance.id"]) where IsMatch(metric.name, "^traces\\.span\\.metrics") == false and resource.attributes["service.instance.id"] != nil
+
           - set(attributes["service_name"], resource.attributes["service.name"]) where IsMatch(metric.name, "^traces\\.span\\.metrics") == false and resource.attributes["service.name"] != nil
 
-          # Clean up the dotted service.name attribute created by the connector for Prometheus compliance
+          # The span-metrics connector emits service.name as one of its
+          # standard metric dimensions. Rename it to service_name so the
+          # Prometheus label matches your existing queries and dashboards.
           - set(attributes["service_name"], attributes["service.name"]) where IsMatch(metric.name, "^traces\\.span\\.metrics") == true and attributes["service.name"] != nil
+
           - delete_key(attributes, "service.name") where IsMatch(metric.name, "^traces\\.span\\.metrics") == true
-          - delete_key(attributes, "service.instance.id") where IsMatch(metric.name, "^traces\\.span\\.metrics") == true
 
 service:
   pipelines:
     traces:
-      receivers: [otlp]
-      processors: [batch]
-      # 2. Add span_metrics as an exporter to catch incoming traces
-      exporters: [otlp_http, span_metrics]
+      receivers:
+        - otlp
+      processors:
+        - batch
+      exporters:
+        - otlp_http
+        - span_metrics
+
     metrics:
-      # 3. Add span_metrics as a receiver to funnel generated metrics into this pipeline
-      receivers: [otlp, span_metrics]
-      processors: [transform, batch]
-      exporters: [prometheus]
+      receivers:
+        - otlp
+        - span_metrics
+      processors:
+        - transform
+        - batch
+      exporters:
+        - prometheus
